@@ -17,6 +17,7 @@ public class GameController : MonoBehaviour {
     public Text scoreText;
     public Text wavesText;
     public Text restartText;
+    public GameObject restartButton;
     public Text gameOverText;
 
     private bool gameOver = false;
@@ -24,18 +25,20 @@ public class GameController : MonoBehaviour {
     private int wave = 0;
 
     void Start() {
-        restartText.text = "";
+        //restartText.text = "";
+        restartText.gameObject.SetActive(false);
+        restartButton.SetActive(false);
         gameOverText.text = "";
         UpdateScore();
         UpdateWaves();
         StartCoroutine(SpawnWaves());
     }
 
-    void Update() {
-        if (gameOver && Input.GetKeyDown(KeyCode.R)) {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
-    }
+    //void Update() {
+    //    if (gameOver && Input.GetKeyDown(KeyCode.R)) {
+    //        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    //    }
+    //}
 
     IEnumerator SpawnWaves() {
         yield return new WaitForSeconds(startWait);
@@ -55,7 +58,8 @@ public class GameController : MonoBehaviour {
             yield return new WaitForSeconds(waveWait);
 
             if (gameOver) {
-                restartText.text = "Press any key to restart";
+                //restartText.text = "Press any key to restart";
+                //restartButton.SetActive(true);
                 break;
             }
 
@@ -72,6 +76,11 @@ public class GameController : MonoBehaviour {
     public void GameOver() {
         gameOverText.text = "Game Over!";
         gameOver = true;
+        restartButton.SetActive(true);
+    }
+
+    public void RestartGame() {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     void UpdateScore() {
