@@ -25,7 +25,7 @@ public class GameController : MonoBehaviour {
     private int wave = 0;
 
     void Start() {
-        //restartText.text = "";
+        restartText.text = "";
         restartText.gameObject.SetActive(false);
         restartButton.SetActive(false);
         gameOverText.text = "";
@@ -78,7 +78,6 @@ public class GameController : MonoBehaviour {
         gameOver = true;
         restartButton.SetActive(true);
     }
-
     public void RestartGame() {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
