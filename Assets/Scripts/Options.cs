@@ -1,67 +1,73 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Audio;
-using UnityEngine.UI;
+﻿using UnityEngine;
 
 
-public class Options : MonoBehaviour
-{
-    public AudioMixer musicAudioMixer;
-    public AudioMixer effectsAudioMixer;
-    public Toggle autofireToggle;
-    public Slider musicVolumeSlider;
-    public Slider effectsVolumeSlider;
-
+public static class Options {
     private static readonly string _music = "music volume";
     private static readonly string _effects = "effects volume";
     private static readonly string _autofire = "autofire";
+    private static readonly string _player_name = "player name";
 
-    private void Awake() {
-        autofireToggle.isOn = GetAutofire();
+    public static float MusicVolume {
+        get {
+            return PlayerPrefs.GetFloat(_music);
+        }
 
-        musicVolumeSlider.value = GetMusicVolume();
-        effectsVolumeSlider.value = GetEffectsVolume();
+        set {
+            PlayerPrefs.SetFloat(_music, value);
+        }
     }
 
-    public void SetAutofire(bool autofire) {
-        PlayerPrefs.SetInt(_autofire, autofire ? 1 : 0);
-        PlayerPrefs.Save();
+    public static float EffectsVolume {
+        get {
+            return PlayerPrefs.GetFloat(_effects);
+        }
+
+        set {
+            PlayerPrefs.SetFloat(_effects, value);
+        }
     }
 
-    public bool GetAutofire() {
-        return PlayerPrefs.GetInt(_autofire, 1) == 1;
+    public static bool Autofire {
+        get {
+            return PlayerPrefsExt.GetBool(_autofire);
+        }
+
+        set {
+            PlayerPrefsExt.SetBool(_autofire, value);
+        }
     }
 
-    public void SetMusicVolume(float volume) {
-        SetVolume(_music, musicAudioMixer, volume);
-    }
+    public static string PlayerName {
+        get {
+            return PlayerPrefs.GetString(_player_name, PlayerData.GenerateRandomName());
+        }
 
-    public void SetEffectsVolume(float volume) {
-        SetVolume(_effects, effectsAudioMixer, volume);
-    }
-
-    public float GetMusicVolume() {
-        return PlayerPrefs.GetFloat(_music, 0.0f);
-    }
-
-    public float GetEffectsVolume() {
-        return PlayerPrefs.GetFloat(_effects, 0.0f);
+        set {
+            PlayerPrefs.SetString(_player_name, value);
+        }
     }
 
     /// <summary>
-    /// Common method for setting any volume parametrized by setting name and mixer.
+    /// Extensions for Unity PlayerPrefs class
     /// </summary>
-    /// <param name="settingName">Name of volume setting in PlayerPrefs storage.</param>
-    /// <param name="mixer">Mixer to control.</param>
-    /// <param name="volume">Volume amount (from -80 to 0).</param>
-    private void SetVolume(string settingName, AudioMixer mixer, float volume) {
-        mixer.SetFloat("volume", volume);
-        PlayerPrefs.SetFloat(settingName, volume);
-        PlayerPrefs.Save();
-    }
+    private static class PlayerPrefsExt {
+        /// <summary>
+        /// Returns bool value from PlayerPrefs.
+        /// </summary>
+        /// <param name="name">Setting name.</param>
+        /// <param name="defaultValue">Default value if setting was not set.</param>
+        /// <returns>Setting value.</returns>
+        public static bool GetBool(string name, bool defaultValue = false) {
+            return PlayerPrefs.GetInt(name, defaultValue ? 1 : 0) == 1;
+        }
 
-    public void SetQuality(int qualityIndex) {
-        QualitySettings.SetQualityLevel(qualityIndex);
+        /// <summary>
+        /// Sets bool setting.
+        /// </summary>
+        /// <param name="name">Setting name.</param>
+        /// <param name="value">Setting value.</param>
+        public static void SetBool(string name, bool value) {
+            PlayerPrefs.SetInt(name, value ? 1 : 0);
+        }
     }
 }

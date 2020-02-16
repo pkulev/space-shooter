@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -14,11 +15,14 @@ public class GameController : MonoBehaviour {
     public float startWait;
     public float waveWait;
 
+    public int highScoreBorder = 500;
+
     public Text scoreText;
     public Text wavesText;
     public Text restartText;
     public GameObject restartButton;
     public Text gameOverText;
+    public GameObject achievementNotification;
 
     private bool gameOver = false;
     private int score = 0;
@@ -33,12 +37,6 @@ public class GameController : MonoBehaviour {
         UpdateWaves();
         StartCoroutine(SpawnWaves());
     }
-
-    //void Update() {
-    //    if (gameOver && Input.GetKeyDown(KeyCode.R)) {
-    //        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    //    }
-    //}
 
     IEnumerator SpawnWaves() {
         yield return new WaitForSeconds(startWait);
@@ -58,8 +56,6 @@ public class GameController : MonoBehaviour {
             yield return new WaitForSeconds(waveWait);
 
             if (gameOver) {
-                //restartText.text = "Press any key to restart";
-                //restartButton.SetActive(true);
                 break;
             }
 
@@ -73,11 +69,25 @@ public class GameController : MonoBehaviour {
         UpdateScore();
     }
 
-    public void GameOver() {
+    public async void GameOver() {
         gameOverText.text = "Game Over!";
         gameOver = true;
         restartButton.SetActive(true);
+
+        if (await MaybePostScoreAsync()) {
+            achievementNotification.SetActive(true);
+        }
     }
+
+    private async Task<bool> MaybePostScoreAsync() {
+        if (score >= highScoreBorder) {
+            await HighScoresClient.Add(new ScoreData(Options.PlayerName, score));
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void RestartGame() {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

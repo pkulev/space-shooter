@@ -12,20 +12,29 @@ using UnityEngine.UI;
 
 class ScoreData {
 
-    private readonly string id;
-    private readonly string name;
-    private readonly int score;
+    public readonly string id;
+    public readonly string name;
+    public readonly int score;
 
+    [JsonConstructor]
     public ScoreData(string id, string name, int score) {
         this.id = id;
         this.name = name;
         this.score = score;
     }
 
-    ScoreData(Dictionary<string, string> data) {
-        this.id = data["_id"];
-        this.name = data["name"];
-        this.score = Convert.ToInt32(data["score"]);
+    public ScoreData(Guid id, string name, int score) : this(id.ToString(), name, score) {}
+    public ScoreData(string name, int score) : this(Guid.NewGuid().ToString(), name, score) {}
+
+    //[JsonConstructor]
+    public ScoreData(string id, string name, string score) : this(id, name, Convert.ToInt32(score)) {}
+
+    public Dictionary<string, object> ToJwtDict() {
+        return new Dictionary<string, object> {
+            { "_id", id },
+            { "name", name },
+            { "score", score },
+        };
     }
 
     public string ToSlotItem() {
@@ -34,7 +43,10 @@ class ScoreData {
 }
 
 
-static class HighScoresServer {
+/// <summary>
+/// Simple client for Highscores server.
+/// </summary>
+static class HighScoresClient {
     private static readonly string _secret = "keeek";
     private static readonly Uri _base_url = new Uri("http://ec2-52-91-188-222.compute-1.amazonaws.com:8000");
     private static readonly HttpClient _client = new HttpClient() {
@@ -61,20 +73,52 @@ static class HighScoresServer {
         }
     }
 
-    public static bool Add(ScoreData score) {
+    public static async Task<bool> Add(ScoreData score) {
         var uri = new Uri(_base_url, "add");
-        return true;
+
+        IJwtEncoder encoder = new JwtEncoder(
+            new HMACSHA256Algorithm(),
+            new JsonNetSerializer(),
+            new JwtBase64UrlEncoder());
+
+        var token = encoder.Encode(score.ToJwtDict(), _secret);
+
+        var request = new HttpRequestMessage() {
+            RequestUri = uri,
+            Method = HttpMethod.Get,
+        };
+
+        request.Headers.Add("Token", token);
+
+        try {
+            var resp = await _client.SendAsync(request);
+            var body = await resp.Content.ReadAsStringAsync();
+            return resp.IsSuccessStatusCode && body != "Not authorized.\n";
+        } catch (Exception exc) {
+            Debug.LogError("Error while sending new score: " + exc);
+            return false;
+        }
     }
 }
 
 public class HighScores : MonoBehaviour
 {
-    public Text serverStatusText;
     public GameObject[] scoreSlots;
+    public GameObject notificationArea;
 
-    public async void Ping() {
-        serverStatusText.text = "Connecting...";
-        UpdateStatusText(await HighScoresServer.Ping());
+    private async void Start() {
+     
+        if (await Ping()) {
+            UpdateScores();
+        }
+    }
+
+    public async Task<bool> Ping() {
+        notificationArea.SetActive(false);
+
+        bool status = await HighScoresClient.Ping();
+        UpdateStatusText(status);
+        return status;
     }
 
     private static Text GetScoreSlotText(GameObject slot) {
@@ -82,62 +126,17 @@ public class HighScores : MonoBehaviour
     }
 
     private void UpdateStatusText(bool successful) {
-        if (successful) {
-            serverStatusText.text = "OK";
-        } else {
-            serverStatusText.text = "Unavailable";
+        if (!successful) {
+            notificationArea.SetActive(true);
         }
     }
 
-    private void OnGUI() {
-        if (GUI.Button(new Rect(10, 10, 150, 100), "Get nudes")) {
-            GetScores();
-        }
-
-        if (GUI.Button(new Rect(10, 130, 150, 100), "Send nudes")) {
-            PostScores();
-        }
-    }
-
-    private async void PostScores() {
-        IJwtEncoder encoder = new JwtEncoder(
-            new HMACSHA256Algorithm(),
-            new JsonNetSerializer(),
-            new JwtBase64UrlEncoder());
-
-        var payload = new Dictionary<string, object> {
-            { "_id", "3" },
-            { "name", "Evgsol" },
-            { "score", 123 },
-        };
-
-        var tmp = new Dictionary<string, Dictionary<string, object>> {
-            { "Score", payload },
-        };
-
-        //var token = encoder.Encode(tmp, _secret);
-
-        var request = new HttpRequestMessage() {
-        //    RequestUri = new Uri(_highscores_service_production_url + "/add"),
-            Method = HttpMethod.Get,
-        };
-
-        //request.Headers.Add("Authorization", string.Format("JWT Token={0}", token));
-        //request.Headers.Add("Token", token);
-
-        //var resp = await _client.SendAsync(request);
-        //var body = await resp.Content.ReadAsStringAsync();
-
-    }
-
-    private void GetScores() {
-        var scores = HighScoresServer.Top();
+    private void UpdateScores() {
+        var scores = HighScoresClient.Top(scoreSlots.Length);
         var idx = 0;
         foreach (var score in scores) {
             GetScoreSlotText(scoreSlots[idx]).text = score.ToSlotItem();
-            if (++idx >= scores.Count) {
-                break;
-            }
+            idx++;
         }
     }
 
