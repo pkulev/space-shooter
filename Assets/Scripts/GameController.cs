@@ -29,10 +29,8 @@ public class GameController : MonoBehaviour {
     private int wave = 0;
 
     void Start() {
-        restartText.text = "";
         restartText.gameObject.SetActive(false);
         restartButton.SetActive(false);
-        gameOverText.text = "";
         UpdateScore();
         UpdateWaves();
         StartCoroutine(SpawnWaves());
@@ -70,7 +68,7 @@ public class GameController : MonoBehaviour {
     }
 
     public async void GameOver() {
-        gameOverText.text = "Game Over!";
+        gameOverText.gameObject.SetActive(true);
         gameOver = true;
         restartButton.SetActive(true);
 
